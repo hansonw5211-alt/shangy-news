@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 每日综合资讯日报 - 云端版本
-在 GitHub Actions 中运行，自动生成并推送日报到微信（PushPlus）
+在 GitHub Actions 中运行，自动生成并发送日报邮件
 支持多个 AI API 提供商（DeepSeek/智谱/通义千问/OpenAI）
 """
 
@@ -9,8 +9,11 @@ import os
 import sys
 import json
 import re
+import smtplib
 import requests
 from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 
 # 第三方库
@@ -491,33 +494,64 @@ body {{
     return html
 
 
-def send_pushplus(title, html_content):
-    """通过 PushPlus 推送到微信"""
+def send_email(subject, html_content, recipient_email):
+    """发送邮件（自动识别 QQ/163/126 邮箱）"""
     
-    pushplus_token = get_env_or_exit("PUSHPLUS_TOKEN").strip()
+    sender_email = get_env_or_exit("SENDER_EMAIL").strip()
+    sender_password = get_env_or_exit("EMAIL_PASSWORD").strip()
     
-    # 提取纯文本摘要（前200字）
-    plain_text = re.sub(r'<[^>]+>', '', html_content).strip()[:200] + "..."
+    # 自动识别邮箱服务商
+    if "qq.com" in sender_email:
+        smtp_server = "smtp.qq.com"
+    elif "163.com" in sender_email:
+        smtp_server = "smtp.163.com"
+    elif "126.com" in sender_email:
+        smtp_server = "smtp.126.com"
+    else:
+        print(f"❌ 不支持的邮箱: {sender_email}")
+        sys.exit(1)
     
-    payload = {
-        "token": pushplus_token,
-        "title": title,
-        "content": html_content,  # PushPlus 免费支持 HTML
-        "template": "html",
-        "channel": "wechat",
-    }
+    print(f"📧 发送邮件: {sender_email} → {recipient_email}")
+    print(f"   邮件服务商: {smtp_server}")
     
-    try:
-        resp = requests.post("https://www.pushplus.plus/send", json=payload, timeout=15)
-        result = resp.json()
-        if result.get("code") == 200:
-            print(f"✅ 微信推送成功！")
-        else:
-            print(f"❌ 推送失败: {result.get('msg', '未知错误')}")
-            raise Exception(f"PushPlus 返回: {result}")
-    except requests.exceptions.RequestException as e:
-        print(f"❌ 推送请求失败: {e}")
-        raise
+    # 构建邮件
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"每日资讯日报 <{sender_email}>"
+    msg['To'] = recipient_email
+    
+    # 纯文本版本
+    plain_text = re.sub(r'<[^>]+>', '', html_content)[:500] + "..."
+    msg.attach(MIMEText(plain_text, 'plain', 'utf-8'))
+    
+    # HTML 版本
+    msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+    
+    # 尝试发送
+    errors = []
+    
+    for port, description in [(465, "SSL"), (587, "TLS")]:
+        try:
+            print(f"   尝试 {description} 端口 {port}...")
+            if port == 465:
+                server = smtplib.SMTP_SSL(smtp_server, port, timeout=15)
+            else:
+                server = smtplib.SMTP(smtp_server, port, timeout=15)
+                server.starttls()
+            
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+            server.quit()
+            print(f"✅ 邮件已发送至: {recipient_email} ({description} {port})")
+            return
+        except Exception as e:
+            errors.append(f"{description} {port}: {e}")
+            print(f"   {description} {port} 失败，尝试下一个...")
+    
+    print(f"❌ 邮件发送失败:")
+    for err in errors:
+        print(f"   {err}")
+    raise Exception("邮件发送失败")
 
 
 def main():
@@ -545,12 +579,13 @@ def main():
     # 读取 HTML 内容
     html_content = html_path.read_text(encoding="utf-8")
     
-    # 推送微信通知
+    # 发送邮件
     today = datetime.now()
-    title = f"📰 每日综合资讯日报 - {today.strftime('%Y年%m月%d日')}"
+    subject = f"📰 每日综合资讯日报 - {today.strftime('%Y年%m月%d日')}"
+    recipient_email = os.environ.get("RECIPIENT_EMAIL", sender_email)  # 默认发到发送邮箱
     
     try:
-        send_pushplus(title, html_content)
+        send_email(subject, html_content, recipient_email)
     except Exception as e:
         print(f"❌ 推送失败: {e}")
         sys.exit(1)

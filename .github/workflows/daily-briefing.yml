@@ -28,7 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
-      - name: Generate and push daily briefing
+      - name: Generate and send daily briefing
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
@@ -37,7 +37,9 @@ jobs:
           QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
           MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
         run: |
           python scripts/daily_briefing_cloud.py
 
