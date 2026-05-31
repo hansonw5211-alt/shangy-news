@@ -582,7 +582,7 @@ def main():
     # 发送邮件
     today = datetime.now()
     subject = f"📰 每日综合资讯日报 - {today.strftime('%Y年%m月%d日')}"
-    recipient_email = os.environ.get("RECIPIENT_EMAIL", sender_email)  # 默认发到发送邮箱
+    recipient_email = get_env_or_exit("RECIPIENT_EMAIL")
     
     try:
         send_email(subject, html_content, recipient_email)
