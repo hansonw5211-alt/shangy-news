@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 每日综合资讯日报 - 云端版本
-在 GitHub Actions 中运行，自动生成并发送日报邮件
+在 GitHub Actions 中运行，自动生成并推送日报到微信（PushPlus）
 支持多个 AI API 提供商（DeepSeek/智谱/通义千问/OpenAI）
 """
 
@@ -9,10 +9,8 @@ import os
 import sys
 import json
 import re
-import smtplib
+import requests
 from datetime import datetime, timedelta
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 
 # 第三方库
@@ -493,59 +491,33 @@ body {{
     return html
 
 
-def send_email(subject, html_content, recipient_email):
-    """发送邮件（支持 163/126/QQ 邮箱，多端口尝试）"""
+def send_pushplus(title, html_content):
+    """通过 PushPlus 推送到微信"""
     
-    smtp_server = "smtp.163.com"
-    sender_email = get_env_or_exit("SENDER_EMAIL")
-    sender_password = get_env_or_exit("EMAIL_PASSWORD").strip()  # 去除首尾空白
+    pushplus_token = get_env_or_exit("PUSHPLUS_TOKEN").strip()
     
-    print(f"📧 发送邮件: {sender_email} → {recipient_email}")
-    print(f"   密码长度: {len(sender_password)} 字符")
+    # 提取纯文本摘要（前200字）
+    plain_text = re.sub(r'<[^>]+>', '', html_content).strip()[:200] + "..."
     
-    # 构建邮件
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From'] = f"每日资讯日报 <{sender_email}>"
-    msg['To'] = recipient_email
+    payload = {
+        "token": pushplus_token,
+        "title": title,
+        "content": html_content,  # PushPlus 免费支持 HTML
+        "template": "html",
+        "channel": "wechat",
+    }
     
-    # 添加纯文本版本（简单提取）
-    plain_text = re.sub(r'<[^>]+>', '', html_content)[:500] + "..."
-    msg.attach(MIMEText(plain_text, 'plain', 'utf-8'))
-    
-    # 添加 HTML 版本
-    msg.attach(MIMEText(html_content, 'html', 'utf-8'))
-    
-    # 尝试多种连接方式
-    errors = []
-    
-    # 方式1: SSL 端口 465
     try:
-        with smtplib.SMTP_SSL(smtp_server, 465, timeout=15) as server:
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print(f"✅ 邮件已发送至: {recipient_email} (SSL 465)")
-        return
-    except Exception as e:
-        errors.append(f"SSL 465: {e}")
-        print(f"⚠️ SSL 465 失败，尝试 TLS 587...")
-    
-    # 方式2: TLS 端口 587
-    try:
-        with smtplib.SMTP(smtp_server, 587, timeout=15) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print(f"✅ 邮件已发送至: {recipient_email} (TLS 587)")
-        return
-    except Exception as e:
-        errors.append(f"TLS 587: {e}")
-    
-    # 全部失败
-    print(f"❌ 邮件发送失败，所有方式均失败:")
-    for err in errors:
-        print(f"   {err}")
-    raise Exception("邮件发送失败: " + "; ".join(errors))
+        resp = requests.post("https://www.pushplus.plus/send", json=payload, timeout=15)
+        result = resp.json()
+        if result.get("code") == 200:
+            print(f"✅ 微信推送成功！")
+        else:
+            print(f"❌ 推送失败: {result.get('msg', '未知错误')}")
+            raise Exception(f"PushPlus 返回: {result}")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 推送请求失败: {e}")
+        raise
 
 
 def main():
@@ -557,7 +529,6 @@ def main():
     
     # 检查环境变量
     tavily_key = get_env_or_exit("TAVILY_API_KEY")
-    recipient_email = get_env_or_exit("RECIPIENT_EMAIL")
     
     # 初始化 Tavily 客户端
     tavily_client = TavilyClient(api_key=tavily_key)
@@ -574,18 +545,18 @@ def main():
     # 读取 HTML 内容
     html_content = html_path.read_text(encoding="utf-8")
     
-    # 发送邮件
+    # 推送微信通知
     today = datetime.now()
-    subject = f"📰 每日综合资讯日报 - {today.strftime('%Y年%m月%d日')}"
+    title = f"📰 每日综合资讯日报 - {today.strftime('%Y年%m月%d日')}"
     
     try:
-        send_email(subject, html_content, recipient_email)
+        send_pushplus(title, html_content)
     except Exception as e:
-        print(f"❌ 邮件发送失败: {e}")
+        print(f"❌ 推送失败: {e}")
         sys.exit(1)
     
     print()
-    print("✅ 每日综合资讯日报生成完成！")
+    print("✅ 每日综合资讯日报推送完成！")
 
 
 if __name__ == "__main__":

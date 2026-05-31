@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "sessions": {
+    "d989b212dfce43c9a6679dd37f9c1ae3": [
+      {
+        "expertId": "WechatOfficialAccountExpert",
+        "name": "号运运",
+        "profession": "微信公众号运营专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/03-Marketing/WechatOfficialAccountExpert/WechatOfficialAccountExpert.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/03-Marketing/WechatOfficialAccountExpert/WechatOfficialAccountExpert_zh.md",
+        "usedAt": 1776775127218,
+        "industryId": "all"
+      }
+    ],
+    "71dfa6e38dc2415abdfb636c3a0656aa": [
+      {
+        "expertId": "TrendResearcher",
+        "name": "风向标",
+        "profession": "行业趋势专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/06-Product/TrendResearcher/TrendResearcher.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/06-Product/TrendResearcher/TrendResearcher_zh.md",
+        "usedAt": 1776775720520,
+        "industryId": "all"
+      }
+    ]
+  },
+  "lastUpdated": 1776784320937
+}

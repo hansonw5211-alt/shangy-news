@@ -1,3 +1,4 @@
 # 每日综合资讯日报 - Python 依赖
 tavily-python>=0.3.0
 openai>=1.0.0
+requests>=2.28.0
