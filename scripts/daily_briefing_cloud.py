@@ -494,12 +494,14 @@ body {{
 
 
 def send_email(subject, html_content, recipient_email):
-    """发送邮件"""
+    """发送邮件（支持 163/126/QQ 邮箱，多端口尝试）"""
     
     smtp_server = "smtp.163.com"
-    smtp_port = 465
     sender_email = get_env_or_exit("SENDER_EMAIL")
-    sender_password = get_env_or_exit("EMAIL_PASSWORD")
+    sender_password = get_env_or_exit("EMAIL_PASSWORD").strip()  # 去除首尾空白
+    
+    print(f"📧 发送邮件: {sender_email} → {recipient_email}")
+    print(f"   密码长度: {len(sender_password)} 字符")
     
     # 构建邮件
     msg = MIMEMultipart('alternative')
@@ -514,12 +516,36 @@ def send_email(subject, html_content, recipient_email):
     # 添加 HTML 版本
     msg.attach(MIMEText(html_content, 'html', 'utf-8'))
     
-    # 发送
-    with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
+    # 尝试多种连接方式
+    errors = []
     
-    print(f"✅ 邮件已发送至: {recipient_email}")
+    # 方式1: SSL 端口 465
+    try:
+        with smtplib.SMTP_SSL(smtp_server, 465, timeout=15) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        print(f"✅ 邮件已发送至: {recipient_email} (SSL 465)")
+        return
+    except Exception as e:
+        errors.append(f"SSL 465: {e}")
+        print(f"⚠️ SSL 465 失败，尝试 TLS 587...")
+    
+    # 方式2: TLS 端口 587
+    try:
+        with smtplib.SMTP(smtp_server, 587, timeout=15) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        print(f"✅ 邮件已发送至: {recipient_email} (TLS 587)")
+        return
+    except Exception as e:
+        errors.append(f"TLS 587: {e}")
+    
+    # 全部失败
+    print(f"❌ 邮件发送失败，所有方式均失败:")
+    for err in errors:
+        print(f"   {err}")
+    raise Exception("邮件发送失败: " + "; ".join(errors))
 
 
 def main():
