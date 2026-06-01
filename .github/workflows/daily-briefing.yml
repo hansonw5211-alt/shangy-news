@@ -1,5 +1,6 @@
 # 每日综合资讯日报 - GitHub Actions 自动化
 # 每天北京时间 09:00 自动运行（UTC 01:00）
+# 2026-06-01: 首次部署，手动测试通过
 
 name: Daily Briefing
 
