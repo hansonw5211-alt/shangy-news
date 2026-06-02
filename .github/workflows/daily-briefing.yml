@@ -6,9 +6,11 @@ name: Daily Briefing
 
 on:
   schedule:
-    # UTC 22:00 = 北京时间 06:00（提前触发，含GitHub延迟缓冲）
-    - cron: '0 22 * * *'
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 22 * * *'   # UTC 22:00 = 北京 06:00
+    - cron: '30 23 * * *'  # UTC 23:30 = 北京 07:30（备用1）
+    - cron: '0 1 * * *'    # UTC 01:00 = 北京 09:00（备用2）
+    - cron: '0 3 * * *'    # UTC 03:00 = 北京 11:00（兜底）
+  workflow_dispatch:  # 手动触发
 
 jobs:
   generate-briefing:

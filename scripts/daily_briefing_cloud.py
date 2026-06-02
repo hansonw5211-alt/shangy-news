@@ -561,6 +561,16 @@ def main():
     print(f"⏰ 运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
     
+    # === 去重检查：今天是否已经生成过 ===
+    today = datetime.now()
+    date_file = today.strftime("%Y%m%d")
+    base_dir = Path(__file__).parent.parent
+    html_path_check = base_dir / "daily-briefing" / "html" / f"briefing-{date_file}.html"
+    
+    if html_path_check.exists():
+        print(f"⏭️ 今天的日报已存在 ({date_file})，跳过重复执行。")
+        return
+    
     # 检查环境变量
     tavily_key = get_env_or_exit("TAVILY_API_KEY")
     
