@@ -22,56 +22,56 @@ from openai import OpenAI  # 兼容所有 OpenAI 格式的 API
 
 # ==================== 配置 ====================
 
-# 五大板块配置
+# 五大板块配置（3中文 + 1英文 = 国内消息为主）
 SECTIONS = [
     {
         "name": "🤖 AI新闻",
         "keywords": ["AI大模型", "人工智能", "OpenAI", "Google AI", "Anthropic", "AI产品发布", "AI技术突破"],
         "search_queries": [
-            "AI artificial intelligence latest news today",
-            "OpenAI Google Anthropic AI model release 2026",
-            "人工智能 大模型 最新消息",
-            "AI technology breakthrough news"
+            "人工智能 大模型 最新进展 国内AI产业",
+            "DeepSeek 百度 阿里 字节 AI发布 国产大模型",
+            "OpenAI Google Anthropic AI最新消息 中国相关",
+            "AI technology China news domestic"
         ]
     },
     {
         "name": "🏥 医疗健康",
         "keywords": ["医疗政策", "医药新药", "生物技术", "医疗器械", "基因治疗", "临床试验"],
         "search_queries": [
-            "medical health news today",
-            "FDA drug approval clinical trial 2026",
-            "医疗政策 新药审批 最新消息",
-            "biotechnology healthcare news"
+            "中国医疗政策 医保 药品审批 卫健委最新",
+            "国产新药 临床试验 生物医药 医疗器械突破",
+            "国内医疗健康 创新药 基因治疗 最新消息",
+            "China healthcare biotech FDA approval domestic"
         ]
     },
     {
         "name": "🔬 科学技术",
         "keywords": ["科学突破", "量子计算", "航空航天", "新能源", "材料科学"],
         "search_queries": [
-            "science technology breakthrough today",
-            "quantum computing space technology news",
-            "科学突破 量子计算 航天 最新消息",
-            "Nature Science research news"
+            "中国科学突破 量子计算 航天 新能源技术",
+            "国内科研进展 中科院 高校 技术创新最新",
+            "中国航天 量子 深海 新材料 重大成果",
+            "China science quantum space energy breakthrough"
         ]
     },
     {
         "name": "💰 金融投资",
         "keywords": ["A股行情", "美股", "港股", "基金", "ETF", "宏观经济"],
         "search_queries": [
-            "stock market financial news today",
-            "A-share US stock market latest",
-            "A股 美股 港股 行情 最新消息",
-            "economic policy central bank news"
+            "A股行情 沪指 深指 市场动态 最新分析",
+            "中国经济政策 央行 人民币 宏观经济最新",
+            "A股 港股 美股 基金 ETF 市场新闻",
+            "China stock market economy finance latest"
         ]
     },
     {
         "name": "⚖️ 法律法规",
         "keywords": ["新法规", "司法解释", "合规政策", "监管新规"],
         "search_queries": [
-            "new law regulation policy today",
-            "legal regulatory news latest",
-            "新法规 监管政策 最新消息",
-            "data security IP law news"
+            "中国新法规 监管政策 国务院 部委发布最新",
+            "司法解释 合规新规 数据安全 知识产权 最新",
+            "国内法律 行业监管 政策法规 最新动态",
+            "China regulation law policy compliance new"
         ]
     }
 ]
@@ -215,10 +215,12 @@ def generate_section_content(ai_client, model_name, section_name, search_results
 **任务**：从以下搜索结果中，为「{section_name}」板块精选5条最重要的资讯。
 
 **筛选标准**：
-1. 来自主流媒体或权威机构
-2. 热度高（多方报道同一事件）或重要性高（影响面广）
-3. 有实质内容，非标题党或广告
-4. 优先选择过去24小时内的新闻
+1. 优先选择国内/中国相关的新闻，兼顾重大国际事件
+2. 来自主流媒体或权威机构（如新华社、财联社、第一财经、科技日报等）
+3. 热度高（多方报道同一事件）或重要性高（影响面广）
+4. 有实质内容，非标题党或广告
+5. 优先选择过去24小时内的新闻
+6. 5条中至少3条为国内新闻
 
 **输出格式**（严格按此格式）：
 
