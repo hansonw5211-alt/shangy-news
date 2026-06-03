@@ -556,6 +556,71 @@ def send_email(subject, html_content, recipient_email):
     raise Exception("邮件发送失败")
 
 
+def check_today_already_run():
+    """通过 GitHub API 检查今天是否已有成功运行（真正的去重）"""
+    
+    # GitHub Actions 环境变量
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    github_repo = os.environ.get("GITHUB_REPOSITORY", "")
+    github_run_id = os.environ.get("GITHUB_RUN_ID", "")
+    workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
+    
+    # 非 GitHub Actions 环境（本地测试），不做 API 去重
+    if not github_token or not github_repo:
+        print("⚠️ 非 GitHub Actions 环境，跳过去重检查")
+        return False
+    
+    # 提取 workflow 文件名
+    # GITHUB_WORKFLOW_REF 格式: hansonw5211-alt/shangy-news/.github/workflows/daily-briefing.yml@refs/heads/main
+    if workflow_ref:
+        parts = workflow_ref.split("/")[-1].split("@")[0]
+        workflow_file = parts
+    else:
+        workflow_file = "daily-briefing.yml"
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    try:
+        # 调用 GitHub API 获取今天本 workflow 的成功运行
+        api_url = (
+            f"https://api.github.com/repos/{github_repo}/actions/workflows/"
+            f"{workflow_file}/runs"
+            f"?status=success"
+            f"&created={today}"
+            f"&per_page=5"
+        )
+        
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        
+        print(f"🔍 检查今天是否已运行过: {today}")
+        resp = requests.get(api_url, headers=headers, timeout=10)
+        
+        if resp.status_code != 200:
+            print(f"⚠️ API 查询失败 (状态码 {resp.status_code})，继续执行")
+            return False
+        
+        data = resp.json()
+        runs = data.get("workflow_runs", [])
+        
+        # 排除自身（当前 run）
+        for run in runs:
+            if str(run.get("id")) != github_run_id and run.get("conclusion") == "success":
+                run_time = run.get("created_at", "unknown")
+                print(f"✅ 今天已有成功运行 (Run #{run['id']}, {run_time})，跳过！")
+                return True
+        
+        print(f"📝 今天尚未成功运行，开始执行...")
+        return False
+        
+    except Exception as e:
+        print(f"⚠️ 去重检查异常: {e}，继续执行（以防漏报）")
+        return False
+
+
 def main():
     """主函数"""
     
@@ -563,14 +628,9 @@ def main():
     print(f"⏰ 运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
     
-    # === 去重检查：今天是否已经生成过 ===
-    today = datetime.now()
-    date_file = today.strftime("%Y%m%d")
-    base_dir = Path(__file__).parent.parent
-    html_path_check = base_dir / "daily-briefing" / "html" / f"briefing-{date_file}.html"
-    
-    if html_path_check.exists():
-        print(f"⏭️ 今天的日报已存在 ({date_file})，跳过重复执行。")
+    # === 去重检查：今天是否已经成功运行过 ===
+    if check_today_already_run():
+        print(f"⏭️ 今天的日报已发送过，跳过重复执行。")
         return
     
     # 检查环境变量

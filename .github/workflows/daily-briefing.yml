@@ -15,6 +15,9 @@ on:
 jobs:
   generate-briefing:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read  # 允许读取 workflow 运行历史（去重用）
+      contents: read
     
     steps:
       - name: Checkout repository
@@ -33,6 +36,7 @@ jobs:
 
       - name: Generate and send daily briefing
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
