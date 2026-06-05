@@ -571,12 +571,9 @@ def check_today_already_run():
         return False
     
     # 提取 workflow 文件名
-    # GITHUB_WORKFLOW_REF 格式: hansonw5211-alt/shangy-news/.github/workflows/daily-briefing.yml@refs/heads/main
-    if workflow_ref:
-        parts = workflow_ref.split("/")[-1].split("@")[0]
-        workflow_file = parts
-    else:
-        workflow_file = "daily-briefing.yml"
+    # GITHUB_WORKFLOW_REF 格式: owner/repo/.github/workflows/daily-briefing.yml@refs/heads/main
+    # 直接硬编码文件名是最可靠的方式
+    workflow_file = "daily-briefing.yml"
     
     today = datetime.now().strftime("%Y-%m-%d")
     
@@ -597,6 +594,7 @@ def check_today_already_run():
         }
         
         print(f"🔍 检查今天是否已运行过: {today}")
+        print(f"   API: {api_url}")
         resp = requests.get(api_url, headers=headers, timeout=10)
         
         if resp.status_code != 200:
@@ -605,10 +603,13 @@ def check_today_already_run():
         
         data = resp.json()
         runs = data.get("workflow_runs", [])
+        print(f"   找到 {data.get('total_count', 0)} 条记录，检查 {len(runs)} 条")
         
         # 排除自身（当前 run）
         for run in runs:
-            if str(run.get("id")) != github_run_id and run.get("conclusion") == "success":
+            conclusion = run.get("conclusion", "")
+            run_id = str(run.get("id", ""))
+            if run_id != github_run_id and conclusion == "success":
                 run_time = run.get("created_at", "unknown")
                 print(f"✅ 今天已有成功运行 (Run #{run['id']}, {run_time})，跳过！")
                 return True
